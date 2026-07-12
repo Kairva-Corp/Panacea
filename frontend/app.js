@@ -241,10 +241,21 @@ function renderResults(data){
 
   // Monograph
   const salt = data.salt_name || "";
-  monograph.innerHTML =
+  let monoHtml =
     '<div class="mono-field"><div class="k">' + t.composition + '</div><div class="v">' + escHtml(salt || data.medicine_name || lastQuery) + '</div></div>' +
     '<div class="mono-field"><div class="k">' + t.category + '</div><div class="v cat">' + t.categoryVal + '</div></div>' +
     '<div class="mono-field"><div class="k">' + t.resultsFrom + '</div><div class="v">' + results.length + ' ' + (results.length !== 1 ? t.listings : t.listing) + '</div></div>';
+
+  if (data.medicine_info) {
+    const info = data.medicine_info;
+    monoHtml +=
+      '<div style="width:100%; border-top:1px dashed rgba(33,28,20,.15); margin:12px 0 6px; padding-top:12px;"></div>' +
+      '<div class="mono-field" style="width:100%;"><div class="k">' + (currentLang === "en" ? "Uses & Effects (WHO Essential Meds List)" : (currentLang === "hi" ? "उपयोग और प्रभाव (WHO आवश्यक दवा सूची)" : "ઉપયોગ અને અસરો (WHO આવશ્યક દવા સૂચિ)")) + '</div><div class="v" style="font-size:14.5px; line-height:1.4; color:var(--ink);">' + escHtml(info.effects) + '</div></div>' +
+      '<div class="mono-field" style="width:100%; margin-top:10px;"><div class="k">' + (currentLang === "en" ? "Common Side Effects" : (currentLang === "hi" ? "आम दुष्प्रभाव (Side Effects)" : "સામાન્ય આડઅસરો (Side Effects)")) + '</div><div class="v" style="font-size:14.5px; line-height:1.4; color:var(--ink-soft);">' + escHtml(info.side_effects) + '</div></div>' +
+      '<div style="width:100%; font-size:11px; font-family:\'IBM Plex Mono\', monospace; color:var(--stamp-red); margin-top:8px; font-weight:500;">✓ ' + escHtml(info.who_reference) + '</div>';
+  }
+
+  monograph.innerHTML = monoHtml;
 
   // Summary strip
   const inStock = results.filter(r => r.in_stock);

@@ -57,6 +57,105 @@ def translate_to_english(text: str) -> str:
             pass
     return text_stripped
 
+# WHO Essential Medicines verified database (Uses & Side Effects)
+WHO_DATABASE = {
+    "telmisartan": {
+        "effects": "Used to treat hypertension (high blood pressure) to help prevent future cardiovascular events like heart attacks and strokes. It works by blocking angiotensin II receptors, which relaxes and widens blood vessels.",
+        "side_effects": "Dizziness, low blood pressure, sinus inflammation (congestion/sore throat), back pain, and elevated potassium levels (hyperkalemia).",
+        "who_reference": "Listed on the WHO Model List of Essential Medicines (Section 12.3: Antihypertensive medicines)"
+    },
+    "metformin": {
+        "effects": "First-line medication for type 2 diabetes mellitus. It helps control blood sugar levels by reducing glucose production in the liver, decreasing glucose absorption in the intestines, and improving insulin sensitivity.",
+        "side_effects": "Nausea, vomiting, diarrhea, abdominal discomfort, metallic taste in the mouth, and vitamin B12 deficiency (long-term use).",
+        "who_reference": "Listed on the WHO Model List of Essential Medicines (Section 18.5: Medicines used for diabetes)"
+    },
+    "atorvastatin": {
+        "effects": "A statin medication used to prevent cardiovascular disease in high-risk individuals and to lower abnormal cholesterol/lipid levels. It works by inhibiting HMG-CoA reductase, the enzyme responsible for cholesterol production in the liver.",
+        "side_effects": "Muscle aches or weakness (myalgia), joint pain, headache, mild digestive issues, and abnormal liver enzyme tests.",
+        "who_reference": "Listed on the WHO Model List of Essential Medicines (Section 12.6: Lipid-lowering medicines)"
+    },
+    "amlodipine": {
+        "effects": "A calcium channel blocker used to treat high blood pressure (hypertension) and chest pain (angina). It works by relaxing the smooth muscle of systemic blood vessels, reducing workload on the heart.",
+        "side_effects": "Swelling of the ankles or feet (edema), headache, fatigue, dizziness, flushing, and palpitations.",
+        "who_reference": "Listed on the WHO Model List of Essential Medicines (Section 12.3: Antihypertensive medicines)"
+    },
+    "losartan": {
+        "effects": "An angiotensin II receptor blocker (ARB) used to treat high blood pressure, protect kidneys in diabetic patients, and decrease stroke risks. It relaxes blood vessels to lower pressure and increase blood flow.",
+        "side_effects": "Dizziness, fatigue, low blood pressure, muscle cramps, and high blood potassium levels.",
+        "who_reference": "Listed on the WHO Model List of Essential Medicines (Section 12.3: Antihypertensive medicines)"
+    }
+}
+
+def clean_salt_name(salt: str) -> str | None:
+    if not salt:
+        return None
+    s = salt.lower()
+    # Remove numbers, percentages, dosage symbols
+    s = re.sub(r'\b\d+\s*(mg|mcg|ml|g|tablet|tablets|capsule|capsules|%\b)', '', s)
+    # Strip non-alphabetic chars
+    s = re.sub(r'[^a-zA-Z\s\-]', ' ', s)
+    words = s.split()
+    stop_words = {"tablet", "tablets", "capsule", "capsules", "mg", "mcg", "g", "ml", "film", "coated", "extended", "release"}
+    words = [w for w in words if w not in stop_words]
+    if not words:
+        return None
+    
+    word = words[0]
+    # Map common Indian/British chemical names to US FDA equivalents
+    if word == "paracetamol":
+        return "acetaminophen"
+    if word == "salbutamol":
+        return "albuterol"
+        
+    return word
+
+def clean_text_formatting(text: str) -> str:
+    if not text:
+        return ""
+    # Strip leading section headers like "1 INDICATIONS & USAGE"
+    text = re.sub(r'^\d+\s+[A-Z\s&_]+\n+', '', text)
+    text = re.sub(r'^\d+\s+[A-Z\s&_]+', '', text)
+    return " ".join(text.split())
+
+def fetch_drug_info_from_fda(salt_name: str) -> dict | None:
+    """Fetch drug uses and adverse reactions dynamically from FDA Open Data API."""
+    clean_name = clean_salt_name(salt_name)
+    if not clean_name:
+        return None
+    try:
+        import urllib.parse
+        encoded_name = urllib.parse.quote(clean_name)
+        url = f"https://api.fda.gov/drug/label.json?search=(openfda.generic_name:%22{encoded_name}%22+OR+openfda.brand_name:%22{encoded_name}%22)&limit=1"
+        r = requests.get(url, timeout=6)
+        if r.status_code == 200:
+            res = r.json()
+            results = res.get("results", [])
+            if results:
+                p = results[0]
+                effects = p.get("indications_and_usage", [""])[0]
+                side_effects = p.get("adverse_reactions", [""])[0]
+                
+                if not effects:
+                    effects = p.get("description", [""])[0]
+                if not side_effects:
+                    side_effects = p.get("warnings_and_precautions", [""])[0]
+                    
+                effects = clean_text_formatting(effects)
+                side_effects = clean_text_formatting(side_effects)
+                
+                if len(effects) > 300:
+                    effects = effects[:297] + "..."
+                if len(side_effects) > 300:
+                    side_effects = side_effects[:297] + "..."
+                    
+                return {
+                    "effects": effects or "Uses and mechanism details are available at pharmacy counters.",
+                    "side_effects": side_effects or "Side effects profile is available at pharmacy counters.",
+                    "who_reference": f"Sourced dynamically from FDA Open Data for {clean_name.capitalize()}"
+                }
+    except Exception:
+        pass
+    return None
 
 # ── Wire helper ──────────────────────────────────────────────────────────────
 
@@ -167,7 +266,7 @@ def norm_apollo(data: dict, query: str) -> list[dict]:
                 "pack_size":  p.get("unitSize") or p.get("packSize") or "",
                 "in_stock":   _check_stock(p),
                 "is_generic": False,
-                "salt":       p.get("saltComposition") or p.get("salt") or "",
+                "salt":       p.get("saltComposition") or p.get("salt") or next((t for t in p.get("tags", []) if "fever" not in t.lower() and "pain" not in t.lower() and "cold" not in t.lower()), "").replace("-", " "),
                 "url":        f"https://www.apollopharmacy.in/otc/{p['urlKey']}" if p.get("urlKey") else "",
             })
     except Exception:
@@ -291,7 +390,7 @@ def norm_netmeds(data: dict, query: str) -> list[dict]:
                 "pack_size":  p.get("pack_size") or p.get("packing_info") or "",
                 "in_stock":   _check_stock(p),
                 "is_generic": False,
-                "salt":       p.get("salt") or p.get("composition") or "",
+                "salt":       p.get("salt") or p.get("composition") or (p.get("attributes") or {}).get("genericname") or (p.get("attributes") or {}).get("genericnamewithdosage") or (p.get("attributes") or {}).get("ingredients") or "",
                 "url":        f"https://www.netmeds.com/product/{p['slug']}" if p.get("slug") else "",
             })
     except Exception:
@@ -424,11 +523,34 @@ def check_price():
     if all_results:
         all_results[0]["is_best"] = True
 
+    # Look up drug information: first try dynamic FDA API, fall back to WHO local DB
+    medicine_info = None
+    if salt_name:
+        medicine_info = fetch_drug_info_from_fda(salt_name)
+    if not medicine_info and medicine_name:
+        medicine_info = fetch_drug_info_from_fda(medicine_name)
+        
+    # Offline WHO Fallback
+    if not medicine_info:
+        lookup_keys = []
+        if salt_name:
+            lookup_keys.append(salt_name.lower())
+        if medicine_name:
+            lookup_keys.append(medicine_name.lower())
+            
+        for k in lookup_keys:
+            for db_key, db_val in WHO_DATABASE.items():
+                if db_key in k:
+                    medicine_info = db_val
+                    break
+            if medicine_info:
+                break
+
     return jsonify({
         "medicine_name":  medicine_name,
         "original_name":  raw_medicine_name,
         "salt_name":      salt_name,
-        "medicine_info":  None,   # WHO not available (no drug lookup action)
+        "medicine_info":  medicine_info,
         "savings":        savings,
         "results":        all_results,
         "site_statuses":  site_statuses,
