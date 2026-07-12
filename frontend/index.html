@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/png" href="log.png">
 </head>
 <body>
 
@@ -25,11 +26,8 @@
     <div class="tape right"></div>
     <div class="letterhead-top">
       <div class="brand">
-        <div class="brand-mark"></div>
-        <div>
-          <h1>Panacea</h1>
-          <div class="sub" id="lblSub">medicine price transparency</div>
-        </div>
+        <span class="brand-name">Panacea</span>
+        <span class="brand-sub">Kairva Corp.</span>
       </div>
       <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
         <div class="lang-selector">
@@ -40,7 +38,12 @@
             <option value="gu">ગુજરાતી</option>
           </select>
         </div>
-        <div class="rx-stamp" id="dateStamp"><b>Rx // checked</b></div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button id="cartBtn" class="cart-btn" title="View cart">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.8px;text-transform:uppercase;">view cart</span>
+            <span id="cartCount" class="cart-count">0</span>
+          </button>
+        </div>
       </div>
     </div>
     <div class="pharmacies-line" id="lblPharmacies">
@@ -70,7 +73,7 @@
       <div class="chip" data-med="Amlodipine 5mg">Amlodipine 5mg</div>
       <div class="chip" data-med="Losartan 50mg">Losartan 50mg</div>
     </div>
-    <div class="hint" id="lblHint">Built for chronic prescriptions — the ones you refill every month, where a few rupees per strip adds up.</div>
+    <div class="hint" id="lblHint">Make sure you have prescription from a certified doctor before ordering medications.</div>
   </div>
 
   <div class="loading" id="loading">checking four counters</div>
@@ -93,13 +96,34 @@
     <div class="store-grid" id="storeGrid"></div>
   </div>
 
+  <!-- Cart Modal -->
+  <div class="cart-overlay" id="cartOverlay">
+    <div class="cart-modal">
+      <div class="cart-modal-header">
+        <h2 id="cartTitle">Your Cart</h2>
+        <button id="cartClose" class="cart-close">&times;</button>
+      </div>
+      <div class="cart-items" id="cartItems">
+        <div class="cart-empty" id="cartEmpty">Your cart is empty</div>
+      </div>
+      <div class="cart-footer">
+        <div class="cart-total" id="cartTotal">—</div>
+        <div class="cart-footer-actions">
+          <button id="cartClear" class="cart-clear-btn">Clear</button>
+          <button id="cartExportPdf" class="cart-export-btn">Export PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <footer>
-    <span id="lblFooter">Panacea · prices &amp; product details shown are indicative, verify at checkout</span>
-    <span id="footDate">—</span>
+    <span id="lblFooter">Panacea by Kairva Corp · prices &amp; product details shown are indicative, verify at checkout</span>
+    <span id="lblNoAccount">No account needed to compare</span>
   </footer>
 
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

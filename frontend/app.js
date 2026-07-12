@@ -10,6 +10,8 @@ let lastQuery = "";
 let lastDataCache = null;
 let currentLang = "en";
 
+let cart = JSON.parse(localStorage.getItem("panaceaCart") || "[]");
+
 const medicineInput = document.getElementById("medicine");
 const compareBtn    = document.getElementById("compare");
 const loadingEl     = document.getElementById("loading");
@@ -24,21 +26,28 @@ const summaryStrip  = document.getElementById("summaryStrip");
 const storeGrid     = document.getElementById("storeGrid");
 const langSelect    = document.getElementById("langSelect");
 const micBtn        = document.getElementById("micBtn");
+const cartBtn       = document.getElementById("cartBtn");
+const cartCount     = document.getElementById("cartCount");
+const cartOverlay   = document.getElementById("cartOverlay");
+const cartClose     = document.getElementById("cartClose");
+const cartItems     = document.getElementById("cartItems");
+const cartEmpty     = document.getElementById("cartEmpty");
+const cartTotal     = document.getElementById("cartTotal");
+const cartClear     = document.getElementById("cartClear");
+const cartExportPdf = document.getElementById("cartExportPdf");
 
 // Dictionary of translations
 const translations = {
   en: {
-    sub: "medicine price transparency",
-    rxChecked: "Rx // checked",
     pharmaciesLine: "comparing live counters at <span>Apollo Pharmacy</span>, <span>Tata 1mg</span> &amp; <span>Netmeds</span> — no sign-up required",
     searchLabel: "Enter medicine name",
     searchPlaceholder: "e.g. Telmisartan 40mg",
     compareBtn: "Compare prices →",
     compareBtnSearching: "searching…",
-    hint: "Built for chronic prescriptions — the ones you refill every month, where a few rupees per strip adds up.",
+    hint: "Make sure you have prescription from a certified doctor before ordering medications.",
     loading: "checking three counters",
-    indicative: "Panacea · prices &amp; product details shown are indicative, verify at checkout",
-    lastVerified: "last verified ",
+    indicative: "Panacea by Kairva Corp · prices &amp; product details shown are indicative, verify at checkout",
+    noAccount: "No account needed to compare",
     composition: "Composition",
     category: "Category",
     categoryVal: "Cardiovascular / chronic therapy",
@@ -55,20 +64,32 @@ const translations = {
     savePris: "save {savings}/month vs priciest option",
     noStock: "no pharmacy currently has this in stock",
     noResults: "no results",
-    foundSuffix: " found"
+    foundSuffix: " found",
+    cartTitle: "Your Cart",
+    cartEmpty: "Your cart is empty",
+    cartTotal: "Total",
+    cartClear: "Clear",
+    cartExportPdf: "Export PDF",
+    addToCart: "add to cart",
+    added: "added",
+    pdfTitle: "Panacea — Cart Summary",
+    pdfMedicine: "Medicine",
+    pdfStore: "Store",
+    pdfPrice: "Price",
+    pdfBuyLink: "Buy Link",
+    pdfGrandTotal: "Grand Total",
+    remove: "remove"
   },
   hi: {
-    sub: "दवाइयों के दाम की पारदर्शिता",
-    rxChecked: "Rx // जाँचा गया",
     pharmaciesLine: "<span>अपोलो फार्मेसी</span>, <span>टाटा 1mg</span> और <span>नेटमैड्स</span> के लाइव काउंटरों की तुलना — किसी साइन-अप की आवश्यकता नहीं है",
     searchLabel: "दवा का नाम दर्ज करें",
     searchPlaceholder: "जैसे: टेल्मिसार्टन 40mg",
     compareBtn: "दामों की तुलना करें →",
     compareBtnSearching: "खोज की जा रही है...",
-    hint: "लंबे समय के पर्चे (बीपी, मधुमेह आदि) के लिए निर्मित — जिन्हें आप हर महीने दोबारा लेते हैं, जहाँ प्रति पत्ता कुछ रुपये भी बड़ी बचत बनते हैं।",
+    hint: "ऑर्डर करने से पहले सुनिश्चित करें कि आपके पास प्रमाणित डॉक्टर का पर्चा है।",
     loading: "तीनों फार्मेसी चेक की जा रही हैं",
     indicative: "पनेशिया · दिखाए गए दाम और उत्पाद विवरण सांकेतिक हैं, भुगतान के समय जांच लें",
-    lastVerified: "अंतिम बार जाँचा गया ",
+    noAccount: "तुलना करने के लिए खाते की आवश्यकता नहीं",
     composition: "संरचना (साल्ट)",
     category: "श्रेणी",
     categoryVal: "हृदय रोग / पुरानी बीमारी की थेरेपी",
@@ -85,20 +106,32 @@ const translations = {
     savePris: "सबसे महंगे विकल्प की तुलना में {savings}/महीने बचाएं",
     noStock: "वर्तमान में किसी भी फार्मेसी में यह उपलब्ध नहीं है",
     noResults: "कोई परिणाम नहीं",
-    foundSuffix: " परिणाम मिले"
+    foundSuffix: " परिणाम मिले",
+    cartTitle: "आपकी कार्ट",
+    cartEmpty: "आपकी कार्ट खाली है",
+    cartTotal: "कुल",
+    cartClear: "साफ़ करें",
+    cartExportPdf: "PDF निर्यात करें",
+    addToCart: "कार्ट में जोड़ें",
+    added: "जोड़ा गया",
+    pdfTitle: "पनेशिया — कार्ट सारांश",
+    pdfMedicine: "दवा",
+    pdfStore: "स्टोर",
+    pdfPrice: "कीमत",
+    pdfBuyLink: "खरीद लिंक",
+    pdfGrandTotal: "कुल योग",
+    remove: "हटाएँ"
   },
   gu: {
-    sub: "દવાઓના ભાવની પારદર્શિતા",
-    rxChecked: "Rx // ચકાસાયેલ",
     pharmaciesLine: "<span>એપોલો ફાર્મસી</span>, <span>ટાટા 1mg</span> અને <span>નેટમેડ્સ</span>ના લાઈવ કાઉન્ટરની સરખામણી — કોઈ સાઇન-અપની જરૂર નથી",
     searchLabel: "દવા નું નામ લખો",
     searchPlaceholder: "જેમ કે: ટેલ્મિસારટન 40mg",
     compareBtn: "ભાવ સરખાવો →",
     compareBtnSearching: "શોધાઈ રહ્યું છે...",
-    hint: "લાંબા ગાળાની દવાઓ માટે બનાવેલ — જે તમે દર મહિને ખરીદો છો, જ્યાં દરેક પત્તા પર થોડા રૂપિયા પણ મોટી બચત આપે છે.",
+    hint: "ઓર્ડર કરતા પહેલા ખાતરી કરો કે તમારી પાસે પ્રમાણિત ડૉક્ટરનું પ્રિસ્ક્રિપ્શન છે.",
     loading: "ત્રણેય ફાર્મસી ચેક થઈ રહી છે",
     indicative: "પેનેસિયા · દર્શાવેલ ભાવો અને ઉત્પાદનની વિગતો સૂચક છે, ચેકઆઉટ વખતે ચકાસો",
-    lastVerified: "છેલ્લે ચકાસાયેલ ",
+    noAccount: "સરખામણી માટે ખાતાની જરૂર નથી",
     composition: "બંધારણ (સાલ્ટ)",
     category: "કેટેગરી",
     categoryVal: "કાર્ડિયોવાસ્ક્યુલર / ક્રોનિક થેરાપી",
@@ -115,18 +148,31 @@ const translations = {
     savePris: "સૌથી મોંઘા વિકલ્પની સરખામણીમાં {savings}/મહિને બચાવો",
     noStock: "હાલમાં કોઈ ફાર્મસીમાં આ સ્ટોક ઉપલબ્ધ નથી",
     noResults: "પરિણામ નથી",
-    foundSuffix: " પરિણામો મળ્યા"
+    foundSuffix: " પરિણામો મળ્યા",
+    cartTitle: "તમારી કાર્ટ",
+    cartEmpty: "તમારી કાર્ટ ખાલી છે",
+    cartTotal: "કુલ",
+    cartClear: "સાફ કરો",
+    cartExportPdf: "PDF નિકાસ કરો",
+    addToCart: "કાર્ટમાં ઉમેરો",
+    added: "ઉમેરાયું",
+    pdfTitle: "પેનેસિયા — કાર્ટ સારાંશ",
+    pdfMedicine: "દવા",
+    pdfStore: "સ્ટોર",
+    pdfPrice: "કિંમત",
+    pdfBuyLink: "ખરીદી લિંક",
+    pdfGrandTotal: "કુલ સરવાળો",
+    remove: "દૂર કરો"
   }
 };
-
-function todayStr(){
-  const d = new Date();
-  return d.toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" });
-}
 
 function formatRs(n){
   if (n == null || isNaN(n)) return "—";
   return "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits:0 });
+}
+function formatPdfRs(n){
+  if (n == null || isNaN(n)) return "—";
+  return "Rs. " + Number(n).toLocaleString("en-IN", { maximumFractionDigits:0 });
 }
 
 function escHtml(s){
@@ -138,10 +184,190 @@ function escHtml(s){
     .replace(/"/g, "&quot;");
 }
 
+// ---------- Cart ----------
+function saveCart(){
+  localStorage.setItem("panaceaCart", JSON.stringify(cart));
+  updateCartCount();
+}
+
+function updateCartCount(){
+  cartCount.textContent = cart.length;
+}
+
+function addToCart(item){
+  const id = item.name + "|" + item.seller + "|" + item.price + "|" + item.pack;
+  const exists = cart.some(c => c.id === id);
+  if (exists) return;
+  cart.push({ id, name: item.name, seller: item.seller, price: item.price, pack: item.pack, url: item.url });
+  saveCart();
+}
+
+function removeFromCart(id){
+  cart = cart.filter(c => c.id !== id);
+  saveCart();
+  renderCartModal();
+}
+
+function clearCart(){
+  if (cart.length === 0) return;
+  cart = [];
+  saveCart();
+  renderCartModal();
+}
+
+function renderCartModal(){
+  const t = translations[currentLang];
+  const isEmpty = cart.length === 0;
+  cartEmpty.style.display = isEmpty ? "block" : "none";
+  document.getElementById("cartTitle").textContent = t.cartTitle;
+
+  if (isEmpty) {
+    cartItems.innerHTML = '<div class="cart-empty" id="cartEmpty">' + t.cartEmpty + '</div>';
+    cartTotal.textContent = "—";
+    return;
+  }
+
+  let html = "";
+  let total = 0;
+  cart.forEach(c => {
+    total += c.price || 0;
+    html +=
+      '<div class="cart-item">' +
+        '<div class="cart-item-info">' +
+          '<div class="cart-item-name">' + escHtml(c.name) + '</div>' +
+          '<div class="cart-item-meta">' + escHtml(c.pack) + '</div>' +
+          '<div class="cart-item-store">' + escHtml(c.seller) + '</div>' +
+        '</div>' +
+        '<div class="cart-item-price">' + formatRs(c.price) + '</div>' +
+        '<button class="cart-item-remove" data-cart-id="' + escHtml(c.id) + '" title="' + t.remove + '">&times;</button>' +
+      '</div>';
+  });
+  cartItems.innerHTML = html;
+  cartTotal.textContent = t.cartTotal + " " + formatRs(total);
+
+  cartItems.querySelectorAll(".cart-item-remove").forEach(btn => {
+    btn.addEventListener("click", () => removeFromCart(btn.dataset.cartId));
+  });
+}
+
+async function exportCartToPdf(){
+  if (cart.length === 0) return;
+  const t = translations[currentLang];
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+  const pageW = 210;
+  const margin = 16;
+  const colW = [10, 68, 38, 30, 40];
+
+  // Load logo for PDF
+  let logoData = null;
+  try {
+    const resp = await fetch("log.png");
+    const blob = await resp.blob();
+    const reader = new FileReader();
+    logoData = await new Promise(resolve => {
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) { /* fallback: no logo */ }
+
+  // Background
+  doc.setFillColor(234, 241, 237);
+  doc.rect(0, 0, pageW, 297, "F");
+
+  // Header area
+  const headY = 14;
+  if (logoData) doc.addImage(logoData, "PNG", margin, headY - 2, 12, 12);
+  doc.setTextColor(33, 28, 20);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.text("Kairva Corp.", margin + (logoData ? 16 : 0), headY + 4);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(90, 83, 65);
+  doc.text("Medicine Cart Summary", margin + (logoData ? 16 : 0), headY + 11);
+
+  // Line
+  doc.setDrawColor(162, 59, 46);
+  doc.setLineWidth(0.5);
+  doc.line(margin, headY + 16, pageW - margin, headY + 16);
+
+  function drawHeader(y){
+    doc.setFillColor(162, 59, 46);
+    doc.rect(margin, y, pageW - 2*margin, 8, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    let x = margin + 2;
+    doc.text("#", x, y + 6);
+    doc.text(t.pdfMedicine, x + colW[0], y + 6);
+    doc.text(t.pdfStore, x + colW[0] + colW[1], y + 6);
+    doc.text(t.pdfPrice, x + colW[0] + colW[1] + colW[2], y + 6);
+    doc.text(t.pdfBuyLink, x + colW[0] + colW[1] + colW[2] + colW[3], y + 6);
+    return y + 8 + 4;
+  }
+
+  let y = drawHeader(headY + 20);
+  let grandTotal = 0;
+
+  cart.forEach((c, i) => {
+    const rowH = 8;
+    if (y + rowH > 275) {
+      doc.addPage();
+      doc.setFillColor(234, 241, 237);
+      doc.rect(0, 0, pageW, 297, "F");
+      y = drawHeader(margin);
+    }
+    grandTotal += c.price || 0;
+
+    // Alternating row bg
+    if (i % 2 === 0) {
+      doc.setFillColor(248, 250, 249);
+      doc.rect(margin, y - 2, pageW - 2*margin, rowH + 2, "F");
+    }
+
+    doc.setTextColor(33, 28, 20);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+
+    let x = margin + 2;
+    doc.text(String(i + 1), x, y + 5);
+    doc.text(c.name, x + colW[0], y + 5);
+    doc.text(c.seller, x + colW[0] + colW[1], y + 5);
+    doc.text(formatPdfRs(c.price), x + colW[0] + colW[1] + colW[2], y + 5);
+
+    // Buy link (clean, no superscript)
+    const linkX = x + colW[0] + colW[1] + colW[2] + colW[3];
+    doc.setTextColor(0, 102, 204);
+    doc.textWithLink("Buy", linkX, y + 5, { url: c.url });
+    doc.setTextColor(33, 28, 20);
+
+    y += rowH + 2;
+  });
+
+  // Grand total
+  y += 4;
+  doc.setDrawColor(162, 59, 46);
+  doc.setLineWidth(0.6);
+  doc.line(margin, y - 2, pageW - margin, y - 2);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(33, 28, 20);
+  doc.text(t.pdfGrandTotal + ": " + formatPdfRs(grandTotal), margin, y + 5);
+
+  // Footer
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(162, 59, 46);
+  doc.text("Panacea by Kairva Corp. · prices indicative, verify at checkout", margin, 285);
+
+  doc.save("panacea-cart.pdf");
+}
+
 function applyLanguage(lang) {
   const t = translations[lang];
-  document.getElementById("lblSub").textContent = t.sub;
-  document.getElementById("dateStamp").innerHTML = "<b>" + t.rxChecked + " // " + todayStr() + "</b>";
   document.getElementById("lblPharmacies").innerHTML = t.pharmaciesLine;
   document.getElementById("lblSearchLabel").textContent = t.searchLabel;
   document.getElementById("medicine").placeholder = t.searchPlaceholder;
@@ -149,7 +375,7 @@ function applyLanguage(lang) {
   document.getElementById("lblHint").textContent = t.hint;
   document.getElementById("loading").textContent = t.loading;
   document.getElementById("lblFooter").innerHTML = t.indicative;
-  document.getElementById("footDate").textContent = t.lastVerified + todayStr();
+  document.getElementById("lblNoAccount").textContent = t.noAccount;
 }
 
 // Initial application
@@ -294,18 +520,27 @@ function renderResults(data){
       const stockLabel = r.in_stock ? t.inStock : t.outStock;
       const linkUrl = r.url || buyUrl;
 
+      const cartName = escHtml(r.name);
+      const cartSeller = escHtml(r.seller);
+      const cartPrice = r.price || 0;
+      const cartPack = escHtml(r.pack_size || "—");
+      const cartUrl = escHtml(linkUrl);
+
       return '<div class="listing' + (isBest ? " best" : "") + (r.in_stock ? "" : " out") + '">' +
         (isBest ? '<div class="listing-badge">' + t.best + '</div>' : "") +
-        '<div class="listing-brand">' + escHtml(r.name) + "</div>" +
+        '<div class="listing-brand">' + cartName + "</div>" +
         (r.is_generic ? '<div class="listing-generic">Generic</div>' : "") +
         '<div class="listing-price-row">' +
           (r.mrp && r.mrp !== r.price ? '<div class="listing-mrp">' + formatRs(r.mrp) + "</div>" : "") +
           '<div class="listing-price">' + (r.price ? formatRs(r.price) : "—") + "</div>" +
         "</div>" +
-        '<div class="listing-pack">' + escHtml(r.pack_size || "—") + "</div>" +
+        '<div class="listing-pack">' + cartPack + "</div>" +
         '<div class="listing-foot">' +
           '<span class="stamp ' + stockClass + '">' + stockLabel + "</span>" +
-          '<a class="buy-link" href="' + escHtml(linkUrl) + '" target="_blank" rel="noopener">' + t.buy + '</a>' +
+          '<div style="display:flex;gap:6px;align-items:center;">' +
+            '<button class="add-cart-btn" data-cart-name="' + cartName.replace(/"/g, "&quot;") + '" data-cart-seller="' + cartSeller.replace(/"/g, "&quot;") + '" data-cart-price="' + cartPrice + '" data-cart-pack="' + cartPack.replace(/"/g, "&quot;") + '" data-cart-url="' + cartUrl + '">' + t.addToCart + '</button>' +
+            '<a class="buy-link" href="' + cartUrl + '" target="_blank" rel="noopener">' + t.buy + '</a>' +
+          '</div>' +
         "</div>" +
       "</div>";
     }).join("");
@@ -321,9 +556,48 @@ function renderResults(data){
     storeGrid.appendChild(col);
   });
 
+  // Attach add-to-cart handlers
+  storeGrid.querySelectorAll(".add-cart-btn").forEach(btn => {
+    const item = {
+      name: btn.dataset.cartName,
+      seller: btn.dataset.cartSeller,
+      price: Number(btn.dataset.cartPrice),
+      pack: btn.dataset.cartPack,
+      url: btn.dataset.cartUrl
+    };
+    const id = item.name + "|" + item.seller + "|" + item.price + "|" + item.pack;
+    btn.classList.toggle("added", cart.some(c => c.id === id));
+    btn.addEventListener("click", () => {
+      if (cart.some(c => c.id === id)) return;
+      addToCart(item);
+      btn.textContent = t.added;
+      btn.classList.add("added");
+    });
+  });
+
   resultsEl.classList.add("active");
   resultsEl.scrollIntoView({ behavior:"smooth", block:"start" });
 }
+
+// ---------- Cart Event Listeners ----------
+updateCartCount();
+cartBtn.addEventListener("click", () => {
+  renderCartModal();
+  cartOverlay.classList.add("active");
+  document.body.style.overflow = "hidden";
+});
+cartClose.addEventListener("click", () => {
+  cartOverlay.classList.remove("active");
+  document.body.style.overflow = "";
+});
+cartOverlay.addEventListener("click", (e) => {
+  if (e.target === cartOverlay) {
+    cartOverlay.classList.remove("active");
+    document.body.style.overflow = "";
+  }
+});
+cartClear.addEventListener("click", clearCart);
+cartExportPdf.addEventListener("click", exportCartToPdf);
 
 // ---------- Speech Recognition Setup ----------
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
