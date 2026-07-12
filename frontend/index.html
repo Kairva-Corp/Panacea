@@ -28,19 +28,29 @@
         <div class="brand-mark"></div>
         <div>
           <h1>Panacea</h1>
-          <div class="sub">medicine price transparency</div>
+          <div class="sub" id="lblSub">medicine price transparency</div>
         </div>
       </div>
-      <div class="rx-stamp" id="dateStamp"><b>Rx // checked</b></div>
+      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+        <div class="lang-selector">
+          <label for="langSelect">LANG // </label>
+          <select id="langSelect">
+            <option value="en">ENGLISH</option>
+            <option value="hi">हिन्दी</option>
+            <option value="gu">ગુજરાતી</option>
+          </select>
+        </div>
+        <div class="rx-stamp" id="dateStamp"><b>Rx // checked</b></div>
+      </div>
     </div>
-    <div class="pharmacies-line">
-      comparing live counters at <span>Apollo Pharmacy</span>, <span>Tata 1mg</span>, <span>Truemeds</span> &amp; <span>Netmeds</span> — no sign-up required
+    <div class="pharmacies-line" id="lblPharmacies">
+      comparing live counters at <span>Apollo Pharmacy</span>, <span>Tata 1mg</span> &amp; <span>Netmeds</span> — no sign-up required
     </div>
     <div class="perforation"></div>
   </div>
 
   <div class="search-zone">
-    <div class="search-label">Enter medicine name</div>
+    <div class="search-label" id="lblSearchLabel">Enter medicine name</div>
     <div class="search-row">
       <div class="search-input-holder">
         <input id="medicine" type="text" placeholder="e.g. Telmisartan 40mg" autocomplete="off">
@@ -54,7 +64,7 @@
       <div class="chip" data-med="Amlodipine 5mg">Amlodipine 5mg</div>
       <div class="chip" data-med="Losartan 50mg">Losartan 50mg</div>
     </div>
-    <div class="hint">Built for chronic prescriptions — the ones you refill every month, where a few rupees per strip adds up.</div>
+    <div class="hint" id="lblHint">Built for chronic prescriptions — the ones you refill every month, where a few rupees per strip adds up.</div>
   </div>
 
   <div class="loading" id="loading">checking four counters</div>
@@ -78,7 +88,7 @@
   </div>
 
   <footer>
-    <span>Panacea · prices &amp; product details shown are indicative, verify at checkout</span>
+    <span id="lblFooter">Panacea · prices &amp; product details shown are indicative, verify at checkout</span>
     <span id="footDate">—</span>
   </footer>
 

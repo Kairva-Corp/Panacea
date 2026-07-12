@@ -36,9 +36,26 @@ POLL_INTERVAL = 1.2  # seconds between polls
 SOURCES = {
     "Apollo Pharmacy": "aph_search",
     "Tata 1mg":        "tmg_search",
-    "Truemeds":        "act_truemeds_search_results",
     "Netmeds":         "nm_search",
 }
+
+def translate_to_english(text: str) -> str:
+    """Translate Hindi or Gujarati (or any language) query to English using a free service."""
+    import urllib.parse
+    text_stripped = text.strip()
+    # Simple check if there are non-ascii characters (indicating Hindi/Gujarati script)
+    if any(ord(char) > 127 for char in text_stripped):
+        try:
+            url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q={urllib.parse.quote(text_stripped)}"
+            r = requests.get(url, timeout=5)
+            r.raise_for_status()
+            res = r.json()
+            translated = res[0][0][0]
+            if translated:
+                return translated.strip()
+        except Exception:
+            pass
+    return text_stripped
 
 
 # ── Wire helper ──────────────────────────────────────────────────────────────
@@ -365,11 +382,14 @@ def health():
 @app.route("/check-price", methods=["POST"])
 def check_price():
     body          = request.get_json(force=True)
-    medicine_name = (body.get("medicine_name") or "").strip()
+    raw_medicine_name = (body.get("medicine_name") or "").strip()
     current_price = body.get("current_price")
 
-    if not medicine_name:
+    if not raw_medicine_name:
         return jsonify({"error": "medicine_name is required"}), 400
+
+    # Auto translate if input script is Hindi/Gujarati
+    medicine_name = translate_to_english(raw_medicine_name)
 
     try:
         current_price = float(current_price) if current_price else None
@@ -381,7 +401,8 @@ def check_price():
     sites_used    = []
     sites_skipped = []
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+    # Map remaining active sources
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
         futures = {
             ex.submit(query_source, name, slug, medicine_name): name
             for name, slug in SOURCES.items()
@@ -405,6 +426,7 @@ def check_price():
 
     return jsonify({
         "medicine_name":  medicine_name,
+        "original_name":  raw_medicine_name,
         "salt_name":      salt_name,
         "medicine_info":  None,   # WHO not available (no drug lookup action)
         "savings":        savings,
