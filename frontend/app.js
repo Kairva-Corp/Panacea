@@ -23,6 +23,7 @@ const monograph     = document.getElementById("monograph");
 const summaryStrip  = document.getElementById("summaryStrip");
 const storeGrid     = document.getElementById("storeGrid");
 const langSelect    = document.getElementById("langSelect");
+const micBtn        = document.getElementById("micBtn");
 
 // Dictionary of translations
 const translations = {
@@ -311,4 +312,55 @@ function renderResults(data){
 
   resultsEl.classList.add("active");
   resultsEl.scrollIntoView({ behavior:"smooth", block:"start" });
+}
+
+// ---------- Speech Recognition Setup ----------
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (SpeechRecognition && micBtn) {
+  const recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  micBtn.addEventListener("click", () => {
+    // Dynamically set language locale
+    if (currentLang === "hi") {
+      recognition.lang = "hi-IN";
+    } else if (currentLang === "gu") {
+      recognition.lang = "gu-IN";
+    } else {
+      recognition.lang = "en-IN";
+    }
+
+    try {
+      recognition.start();
+    } catch (e) {
+      recognition.stop();
+    }
+  });
+
+  recognition.onstart = () => {
+    micBtn.classList.add("listening");
+  };
+
+  recognition.onend = () => {
+    micBtn.classList.remove("listening");
+  };
+
+  recognition.onerror = () => {
+    micBtn.classList.remove("listening");
+  };
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    // Strip trailing punctuation
+    const cleanedText = transcript.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").trim();
+    if (cleanedText) {
+      medicineInput.value = cleanedText;
+      runSearch(cleanedText);
+    }
+  };
+} else if (micBtn) {
+  // Hide mic button if browser doesn't support Speech API
+  micBtn.style.display = "none";
 }

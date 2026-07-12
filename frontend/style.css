@@ -245,3 +245,41 @@ footer{
   color: var(--stamp-red);
 }
 
+/* ---------- Mic Button ---------- */
+.search-input-holder {
+  position: relative;
+}
+.mic-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--cream);
+  opacity: 0.55;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s, color 0.2s;
+  z-index: 10;
+  outline: none;
+}
+.mic-btn:hover {
+  opacity: 1;
+  color: var(--turmeric);
+}
+.mic-btn.listening {
+  color: var(--stamp-red);
+  opacity: 1;
+  animation: micPulse 1.2s infinite ease-in-out;
+}
+@keyframes micPulse {
+  0% { transform: translateY(-50%) scale(1); }
+  50% { transform: translateY(-50%) scale(1.22); }
+  100% { transform: translateY(-50%) scale(1); }
+}
+
+
