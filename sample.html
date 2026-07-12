@@ -1,3 +1,10 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panacea — compare medicine prices</title>
+<style>
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:ital,wght@0,400;0,500;1,400&display=swap');
 
 :root{
@@ -97,8 +104,7 @@ button#compare{
   box-shadow:0 6px 0 rgba(0,0,0,.28);
 }
 button#compare:hover{ filter:brightness(1.08); }
-button#compare:active:not(:disabled){ transform:translateY(6px); box-shadow:0 0 0 rgba(0,0,0,.28); }
-button#compare:disabled{ opacity:.5; cursor:default; transform:translateY(3px); box-shadow:0 3px 0 rgba(0,0,0,.28); }
+button#compare:active{ transform:translateY(6px); box-shadow:0 0 0 rgba(0,0,0,.28); }
 
 .chips{ margin-top:18px; display:flex; gap:10px; flex-wrap:wrap; }
 .chip{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--cream); border:1px solid var(--line); padding:6px 12px; border-radius:20px; cursor:pointer; opacity:.75; transition:opacity .15s, border-color .15s; }
@@ -111,12 +117,6 @@ button#compare:disabled{ opacity:.5; cursor:default; transform:translateY(3px); 
 .loading.active{ display:block; }
 .loading::after{ content:''; display:inline-block; width:1ch; animation: dots 1s steps(4,end) infinite; }
 @keyframes dots{ 0%{ content:''; } 25%{ content:'.'; } 50%{ content:'..'; } 75%{ content:'...'; } 100%{ content:''; } }
-
-/* ---------- Error ---------- */
-.error{ display:none; margin-top:50px; font-family:'IBM Plex Mono', monospace; font-size:13px; letter-spacing:.5px; color:var(--stamp-red); }
-.error.active{ display:block; }
-.error button{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--cream); background:transparent; border:1px solid var(--cream); border-radius:2px; padding:6px 14px; margin-left:12px; cursor:pointer; }
-.error button:hover{ background:rgba(241,232,214,.1); }
 
 /* ---------- Results ---------- */
 .results{ display:none; margin-top:54px; }
@@ -218,3 +218,232 @@ footer{
 }
 
 @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+
+<div class="pill-decor" style="top:8%; left:6%; transform:rotate(-18deg);">
+  <svg width="90" height="36" viewBox="0 0 90 36"><rect x="1" y="1" width="88" height="34" rx="17" fill="none" stroke="#f1e8d6" stroke-width="2"/><line x1="45" y1="1" x2="45" y2="35" stroke="#f1e8d6" stroke-width="2"/></svg>
+</div>
+<div class="pill-decor" style="bottom:10%; right:8%; transform:rotate(24deg);">
+  <svg width="70" height="28" viewBox="0 0 70 28"><rect x="1" y="1" width="68" height="26" rx="13" fill="none" stroke="#f1e8d6" stroke-width="2"/><line x1="35" y1="1" x2="35" y2="27" stroke="#f1e8d6" stroke-width="2"/></svg>
+</div>
+
+<div class="wrap">
+
+  <div class="letterhead">
+    <div class="tape left"></div>
+    <div class="tape right"></div>
+    <div class="letterhead-top">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div>
+          <h1>Panacea</h1>
+          <div class="sub">medicine price transparency</div>
+        </div>
+      </div>
+      <div class="rx-stamp" id="dateStamp"><b>Rx // checked</b></div>
+    </div>
+    <div class="pharmacies-line">
+      comparing live counters at <span>Apollo Pharmacy</span>, <span>Tata 1mg</span>, <span>Truemeds</span> &amp; <span>Netmeds</span> — no sign-up required
+    </div>
+    <div class="perforation"></div>
+  </div>
+
+  <div class="search-zone">
+    <div class="search-label">Enter medicine name</div>
+    <div class="search-row">
+      <div class="search-input-holder">
+        <input id="medicine" type="text" placeholder="e.g. Telmisartan 40mg" autocomplete="off">
+      </div>
+      <button id="compare">Compare prices →</button>
+    </div>
+    <div class="chips">
+      <div class="chip" data-med="Metformin 500mg">Metformin 500mg</div>
+      <div class="chip" data-med="Atorvastatin 10mg">Atorvastatin 10mg</div>
+      <div class="chip" data-med="Telmisartan 40mg">Telmisartan 40mg</div>
+      <div class="chip" data-med="Amlodipine 5mg">Amlodipine 5mg</div>
+      <div class="chip" data-med="Losartan 50mg">Losartan 50mg</div>
+    </div>
+    <div class="hint">Built for chronic prescriptions — the ones you refill every month, where a few rupees per strip adds up.</div>
+  </div>
+
+  <div class="loading" id="loading">checking four counters</div>
+
+  <div class="results" id="results">
+    <div class="results-head">
+      <h2 id="resMedName">—</h2>
+      <div class="meta" id="resMeta">—</div>
+    </div>
+
+    <div class="monograph" id="monograph"></div>
+
+    <div class="summary-strip" id="summaryStrip"></div>
+
+    <div class="store-grid" id="storeGrid"></div>
+  </div>
+
+  <footer>
+    <span>Panacea · prices &amp; product details shown are indicative, verify at checkout</span>
+    <span id="footDate">—</span>
+  </footer>
+
+</div>
+
+<script>
+const stores = [
+  { key:'apollo',   name:'Apollo Pharmacy', color:'#c0392b', urlBase:'https://www.apollopharmacy.in/search-medicines/' },
+  { key:'tata1mg',  name:'Tata 1mg',        color:'#1f6fb2', urlBase:'https://www.1mg.com/search/all?name=' },
+  { key:'truemeds', name:'Truemeds',        color:'#1e8a73', urlBase:'https://www.truemeds.in/search/' },
+  { key:'netmeds',  name:'Netmeds',         color:'#d98324', urlBase:'https://www.netmeds.com/catalogsearch/result?q=' },
+];
+
+const packOptions = [
+  { label:'strip of 10 tablets', units:10 },
+  { label:'strip of 15 tablets', units:15 },
+  { label:'bottle of 30 tablets', units:30 },
+  { label:'pack of 10x10 tablets', units:100 },
+];
+
+const categories = ['Diabetes care','Blood pressure','Cholesterol management','Thyroid care','Pain & inflammation','Blood thinner'];
+const schedules = ['Schedule H — prescription required','Schedule H1 — prescription required, sale recorded'];
+const companies = ['Cipla','Sun Pharma','Zydus','Mankind','Intas','Torrent','Lupin',"Dr. Reddy's",'Alkem','Micro Labs','Aristo','Macleods'];
+
+function seededRandom(seedStr){
+  let h = 0;
+  for(let i=0;i<seedStr.length;i++){ h = (Math.imul(31,h)+seedStr.charCodeAt(i))|0; }
+  return function(){
+    h = Math.imul(h ^ (h>>>15), 1 | h);
+    h ^= h + Math.imul(h ^ (h>>>7), 61 | h);
+    return ((h ^ (h>>>14)) >>> 0) / 4294967296;
+  };
+}
+
+function formatRs(n){ return '₹' + n.toLocaleString('en-IN'); }
+function todayStr(){ const d = new Date(); return d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }); }
+document.getElementById('dateStamp').innerHTML = '<b>Rx // ' + todayStr() + '</b>';
+document.getElementById('footDate').textContent = 'last verified ' + todayStr();
+
+function titleCaseWord(w){ return w.charAt(0).toUpperCase() + w.slice(1); }
+
+function runSearch(name){
+  name = name.trim();
+  if(!name) return;
+  const loading = document.getElementById('loading');
+  const results = document.getElementById('results');
+  results.classList.remove('active');
+  loading.classList.add('active');
+
+  setTimeout(() => {
+    renderResults(name);
+    loading.classList.remove('active');
+    results.classList.add('active');
+    results.scrollIntoView({ behavior:'smooth', block:'start' });
+  }, 650);
+}
+
+function renderResults(name){
+  const rand = seededRandom(name.toLowerCase());
+  const mrp = Math.round((80 + rand()*370)/5)*5;
+  const pack = packOptions[Math.floor(rand()*packOptions.length)];
+  const category = categories[Math.floor(rand()*categories.length)];
+  const schedule = schedules[Math.floor(rand()*schedules.length)];
+  const rootWord = titleCaseWord(name.split(' ')[0]);
+
+  document.getElementById('resMedName').textContent = name;
+  document.getElementById('resMeta').textContent = pack.label + ' · MRP ' + formatRs(mrp) + ' · 4 pharmacies checked';
+
+  document.getElementById('monograph').innerHTML = `
+    <div class="mono-field"><div class="k">Composition</div><div class="v">${name}</div></div>
+    <div class="mono-field"><div class="k">Category</div><div class="v cat">${category}</div></div>
+    <div class="mono-field"><div class="k">Common form</div><div class="v">Oral tablet</div></div>
+    <div class="mono-field"><div class="k">Sale status</div><div class="v">${schedule}</div></div>
+  `;
+
+  // build listings per store
+  const allListings = [];
+  const storeGroups = stores.map(store => {
+    const count = 2 + Math.floor(rand()*2); // 2 or 3
+    const listings = [];
+    for(let i=0;i<count;i++){
+      const isGeneric = i === count - 1;
+      const discount = 0.05 + rand()*0.35;
+      const price = Math.round(mrp * (1 - discount) * (isGeneric ? 0.82 : 1));
+      const roll = rand();
+      const stock = roll < 0.08 ? 'out' : (roll < 0.24 ? 'low' : 'in');
+      const company = companies[Math.floor(rand()*companies.length)];
+      const brand = isGeneric ? `${rootWord} (Generic)` : `${company} ${rootWord}`;
+      const monthly = price * Math.ceil(30 / pack.units);
+      const listing = { store, brand, isGeneric, price, stock, monthly };
+      listings.push(listing);
+      if(stock !== 'out') allListings.push(listing);
+    }
+    return { store, listings };
+  });
+
+  const cheapest = allListings.length ? allListings.reduce((a,b)=> a.monthly < b.monthly ? a : b) : null;
+  const priciest = allListings.length ? allListings.reduce((a,b)=> a.monthly > b.monthly ? a : b) : null;
+  const savings = (cheapest && priciest) ? (priciest.monthly - cheapest.monthly) : 0;
+
+  document.getElementById('summaryStrip').innerHTML = cheapest
+    ? `<span>cheapest overall — <strong>${cheapest.brand}</strong> at <strong>${cheapest.store.name}</strong>, ${formatRs(cheapest.price)} per pack</span><span>save ${formatRs(savings)}/month vs the priciest listing found</span>`
+    : `<span>no pharmacy currently has this in stock</span>`;
+
+  const grid = document.getElementById('storeGrid');
+  grid.innerHTML = '';
+
+  storeGroups.forEach(group => {
+    const col = document.createElement('div');
+    col.className = 'store-col';
+    col.style.setProperty('--store-color', group.store.color);
+
+    const buyUrl = group.store.urlBase + encodeURIComponent(name);
+
+    const rows = group.listings.map(l => {
+      const isBest = cheapest && l === cheapest;
+      const stampLabel = l.stock === 'in' ? 'in stock' : (l.stock === 'low' ? 'low stock' : 'out of stock');
+      return `
+        <div class="listing ${isBest ? 'best' : ''} ${l.stock === 'out' ? 'out' : ''}">
+          ${isBest ? '<div class="listing-badge">best</div>' : ''}
+          <div class="listing-brand">${l.brand}</div>
+          <div class="listing-generic">${name}</div>
+          <div class="listing-price-row">
+            <div class="listing-mrp">${formatRs(mrp)}</div>
+            <div class="listing-price">${formatRs(l.price)}</div>
+          </div>
+          <div class="listing-pack">${pack.label}</div>
+          <div class="listing-foot">
+            <span class="stamp ${l.stock}">${stampLabel}</span>
+            <a class="buy-link" href="${buyUrl}" target="_blank" rel="noopener">buy ↗</a>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    col.innerHTML = `
+      <div class="store-head">
+        <span class="dot"></span>
+        <span class="name">${group.store.name}</span>
+        <span class="count">${group.listings.length} options</span>
+      </div>
+      ${rows}
+    `;
+    grid.appendChild(col);
+  });
+}
+
+document.getElementById('compare').addEventListener('click', () => {
+  runSearch(document.getElementById('medicine').value);
+});
+document.getElementById('medicine').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') runSearch(e.target.value);
+});
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.getElementById('medicine').value = chip.dataset.med;
+    runSearch(chip.dataset.med);
+  });
+});
+</script>
+</body>
+</html>

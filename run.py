@@ -40,7 +40,7 @@ def main():
         sys.exit(1)
 
     print("[2/2] Opening frontend in browser ...")
-    webbrowser.open(FRONTEND.as_uri())
+    webbrowser.open("http://localhost:5000")
 
     print("\n[OK] Panacea is running.")
     print("  Backend : http://localhost:5000")

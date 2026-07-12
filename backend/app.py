@@ -5,7 +5,7 @@ POST /check-price { medicine_name, current_price? }
 
 import os, time, concurrent.futures, re
 from pathlib import Path
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from dotenv import load_dotenv
 import requests
@@ -13,7 +13,9 @@ import requests
 # Load .env from the project root (one level up from backend/)
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
-app = Flask(__name__)
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+
+app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path="")
 CORS(app)
 
 API_KEY = os.getenv("ANAKIN_API_KEY")
@@ -34,7 +36,7 @@ POLL_INTERVAL = 1.2  # seconds between polls
 SOURCES = {
     "Apollo Pharmacy": "aph_search",
     "Tata 1mg":        "tmg_search",
-    "Truemeds":        "tm_search",
+    "Truemeds":        "act_truemeds_search_results",
     "Netmeds":         "nm_search",
 }
 
@@ -110,6 +112,23 @@ def parse_price(val) -> float | None:
 # ── Normalizers ───────────────────────────────────────────────────────────────
 # Each receives the raw Wire result dict and returns list[dict]
 
+def _check_stock(item: dict) -> bool:
+    """Check multiple stock-related fields across different API schemas."""
+    for key in ("available", "availability", "in_stock", "inStock", "stock_status", "status", "is_available"):
+        val = item.get(key)
+        if val is None:
+            continue
+        if isinstance(val, bool):
+            return val
+        if isinstance(val, (int, float)):
+            return val > 0
+        s = str(val).strip().lower()
+        if s in ("true", "yes", "y", "1", "in-stock", "in_stock", "in stock", "available"):
+            return True
+        if s in ("false", "no", "n", "0", "out-of-stock", "out_of_stock", "out of stock", "unavailable"):
+            return False
+    return True  # default to in stock
+
 def norm_apollo(data: dict, query: str) -> list[dict]:
     """Apollo: Wire envelope -> data.data.products[]"""
     items = []
@@ -129,10 +148,10 @@ def norm_apollo(data: dict, query: str) -> list[dict]:
                 "price":      price,
                 "mrp":        mrp or price,
                 "pack_size":  p.get("unitSize") or p.get("packSize") or "",
-                "in_stock":   str(p.get("status", "in-stock")).lower() == "in-stock",
+                "in_stock":   _check_stock(p),
                 "is_generic": False,
                 "salt":       p.get("saltComposition") or p.get("salt") or "",
-                "url":        f"https://www.apollopharmacy.in/otc/{p.get('urlKey', '')}",
+                "url":        f"https://www.apollopharmacy.in/otc/{p['urlKey']}" if p.get("urlKey") else "",
             })
     except Exception:
         pass
@@ -166,7 +185,7 @@ def norm_1mg(data: dict, query: str) -> list[dict]:
                 "price":      price,
                 "mrp":        mrp or price,
                 "pack_size":  pack,
-                "in_stock":   p.get("available", True) is not False,
+                "in_stock":   _check_stock(p),
                 "is_generic": "generic" in str(p.get("type", "")).lower(),
                 "salt":       p.get("compositionTitle") or p.get("salt") or "",
                 "url":        f"https://www.1mg.com{url_path}" if url_path else "https://www.1mg.com",
@@ -176,40 +195,59 @@ def norm_1mg(data: dict, query: str) -> list[dict]:
     return items
 
 
-def norm_truemeds(data: dict, query: str) -> list[dict]:
+def _extract_items(data, *keys):
+    """Find a list of dicts in nested data by trying multiple keys."""
+    if isinstance(data, list):
+        return data
+    if not isinstance(data, dict):
+        return []
+    for key in keys:
+        val = data.get(key)
+        if isinstance(val, list):
+            return val
+        if isinstance(val, dict):
+            # recurse one level
+            for v in val.values():
+                if isinstance(v, list):
+                    return v
+                if isinstance(v, dict):
+                    sub = _extract_items(v, *keys)
+                    if sub:
+                        return sub
+    return []
+
+
+def norm_truemeds(data, query: str) -> list[dict]:
     """Truemeds: Wire envelope -> data.data.products[].product
     Fields: skuName, mrp, sellingPrice, packSize, saltComposition,
             canonicalUrl, available, genericBranded
     """
+    inner = data.get("data") if isinstance(data, dict) else data
+    raw_list = _extract_items(inner, "products", "items", "results", "data")
     items = []
-    try:
-        inner    = data.get("data") or data
-        raw_list = inner.get("products") or []
-        for item in raw_list[:10]:
-            if not isinstance(item, dict):
-                continue
-            p = item.get("product") or item  # unwrap .product sub-object
-            price = parse_price(p.get("sellingPrice") or p.get("mrp"))
-            mrp   = parse_price(p.get("mrp"))
-            if price is None:
-                continue
-            pack_qty  = p.get("packSize") or ""
-            pack_form = p.get("packForm") or ""
-            pack = f"{pack_qty} {pack_form}".strip() if (pack_qty or pack_form) else ""
-            url = p.get("canonicalUrl") or p.get("pdpDeepLink") or ""
-            items.append({
-                "seller":     "Truemeds",
-                "name":       p.get("skuName") or p.get("name") or query,
-                "price":      price,
-                "mrp":        mrp or price,
-                "pack_size":  pack,
-                "in_stock":   p.get("available", True) is True,
-                "is_generic": str(p.get("genericBranded", "")).lower() == "generic",
-                "salt":       (p.get("saltComposition") or p.get("composition") or "").strip(),
-                "url":        f"https://www.truemeds.in{url}" if url.startswith("/") else url,
-            })
-    except Exception:
-        pass
+    for item in raw_list[:15]:
+        if not isinstance(item, dict):
+            continue
+        p = item.get("product") or item
+        price = parse_price(p.get("sellingPrice") or p.get("mrp") or p.get("price"))
+        mrp   = parse_price(p.get("mrp"))
+        if price is None:
+            continue
+        pack_qty  = p.get("packSize") or p.get("pack_qty") or ""
+        pack_form = p.get("packForm") or p.get("pack_form") or ""
+        pack = f"{pack_qty} {pack_form}".strip() if (pack_qty or pack_form) else str(pack_qty)
+        url = p.get("canonicalUrl") or p.get("pdpDeepLink") or p.get("url") or ""
+        items.append({
+            "seller":     "Truemeds",
+            "name":       p.get("skuName") or p.get("name") or p.get("product_name") or query,
+            "price":      price,
+            "mrp":        mrp or price,
+            "pack_size":  pack,
+            "in_stock":   _check_stock(p),
+            "is_generic": str(p.get("genericBranded", "")).lower() == "generic",
+            "salt":       (p.get("saltComposition") or p.get("composition") or p.get("salt") or "").strip(),
+            "url":        f"https://www.truemeds.in{url}" if url.startswith("/") else url,
+        })
     return items
 
 
@@ -234,10 +272,10 @@ def norm_netmeds(data: dict, query: str) -> list[dict]:
                 "price":      price,
                 "mrp":        mrp or price,
                 "pack_size":  p.get("pack_size") or p.get("packing_info") or "",
-                "in_stock":   str(p.get("availability", "in_stock")) == "in_stock",
+                "in_stock":   _check_stock(p),
                 "is_generic": False,
                 "salt":       p.get("salt") or p.get("composition") or "",
-                "url":        f"https://www.netmeds.com/prescriptions/{p.get('slug', '')}",
+                "url":        f"https://www.netmeds.com/product/{p['slug']}" if p.get("slug") else "",
             })
     except Exception:
         pass
@@ -254,7 +292,7 @@ NORMALIZERS = {
 SOURCE_PARAMS = {
     "Apollo Pharmacy": lambda q: {"query": q, "per_page": 10},
     "Tata 1mg":        lambda q: {"query": q, "per_page": 10},
-    "Truemeds":        lambda q: {"query": q, "multi_search": True},
+    "Truemeds":        lambda q: {"query": q, "multi_search": True, "per_page": 10},
     "Netmeds":         lambda q: {"query": q, "per_page": 10},
 }
 
@@ -376,6 +414,11 @@ def check_price():
         "sites_skipped":  sites_skipped,
         "timestamp":      int(time.time()),
     })
+
+
+@app.route("/")
+def index():
+    return send_file(str(FRONTEND_DIR / "index.html"))
 
 
 if __name__ == "__main__":
