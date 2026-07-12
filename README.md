@@ -1,7 +1,7 @@
 # 💊 Panacea — The Cure for Your Medicine Bill
 
 <div align="center">
-  <img src="log.png" alt="Panacea Banner" width="100%" style="border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);" />
+  <img src="log.png" alt="Panacea Banner" width="50%" style="border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);" />
   <br/><br/>
   
   [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -13,7 +13,7 @@
 
 ---
 
-## 🛠️ Built by **Kairva Corps**
+## 🛠️ Built by **Kairva Corp.**
 
 Panacea was developed in under 6 hours as a fast, pragmatic, and highly optimized health-tech solution. It transforms complex prescription listings into a clean, comparative dashboard for patients, elderly parents, and caregivers.
 
@@ -40,6 +40,11 @@ Panacea was developed in under 6 hours as a fast, pragmatic, and highly optimize
 
 ### 🏛️ 5. Antique Prescription Letterhead Aesthetic
 * Designed like a physical prescription card with a clean letterhead, perforation borders, color-coded warning stamps, and a masonry layout.
+
+### 📄 6. PDF Receipt & Cart Export
+* Save your compared medicine cart instantly as a beautifully formatted PDF receipt.
+* Features clean tabular formatting, dynamic grand total calculation, pharmacy vendor attribution, and direct checkout links.
+* Perfect for sharing medication costs with family or keeping track of monthly health expenses.
 
 ---
 
@@ -70,8 +75,6 @@ Create a `.env` file in the project root:
 ```env
 ANAKIN_API_KEY=ask_your_anakin_key_here
 ```
-> ⚠️ `.env` is pre-configured in `.gitignore` and will never be committed or leaked.
-
 ### 2. Install dependencies
 ```bash
 pip install -r requirements.txt
@@ -82,50 +85,6 @@ pip install -r requirements.txt
 python run.py
 ```
 This starts the Flask backend on `http://localhost:5000` and automatically launches the app in your system's default browser.
-
----
-
-## 🔌 API Documentation
-
-### `POST /check-price`
-Queries all active pharmacies concurrently.
-
-**Request:**
-```json
-{
-  "medicine_name": "मेटफॉर्मिन",
-  "current_price": 300
-}
-```
-
-**Response:**
-```json
-{
-  "medicine_name": "Metformin",
-  "original_name": "मेटफॉर्मिन",
-  "salt_name": "Metformin Hydrochloride",
-  "medicine_info": {
-    "effects": "Metformin hydrochloride tablets are indicated as an adjunct to diet and exercise...",
-    "side_effects": "The following adverse reactions are also discussed elsewhere: Lactic Acidosis...",
-    "who_reference": "Sourced dynamically from FDA Open Data for Metformin"
-  },
-  "savings": {
-    "baseline": 32.04,
-    "cheapest": 26.27,
-    "cheapest_name": "Metformin Hydrochloride 500mg",
-    "cheapest_seller": "Netmeds",
-    "headline_savings": 5.77,
-    "savings_pct": 18
-  },
-  "results": [ ... ],
-  "site_statuses": {
-    "Apollo Pharmacy": "found 10 results",
-    "Tata 1mg": "found 10 results",
-    "Netmeds": "found 10 results"
-  }
-}
-```
-
 ---
 
 ## 🔒 Security & Safety
