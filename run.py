@@ -6,7 +6,14 @@ Usage: python run.py
 import subprocess, sys, os, webbrowser, time
 from pathlib import Path
 
+# Add backend directory to path and expose app for Vercel Serverless hosting
 ROOT     = Path(__file__).resolve().parent
+sys.path.append(str(ROOT / "backend"))
+try:
+    from app import app
+except ImportError:
+    pass
+
 BACKEND  = ROOT / "backend" / "app.py"
 FRONTEND = ROOT / "frontend" / "index.html"
 
