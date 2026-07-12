@@ -46,6 +46,10 @@ Panacea was developed in under 6 hours as a fast, pragmatic, and highly optimize
 * Features clean tabular formatting, dynamic grand total calculation, pharmacy vendor attribution, and direct checkout links.
 * Perfect for sharing medication costs with family or keeping track of monthly health expenses.
 
+<div align="center">
+  <img src="panacea_pdf.jpg" alt="Medicine Cart Receipt PDF" width="80%" style="border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);" />
+</div>
+
 ---
 
 ## ⚙️ Stack & Architecture
