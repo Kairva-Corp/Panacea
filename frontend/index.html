@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panacea — The cure for your medicine bill</title>
+  <meta name="description" content="Panacea finds the best price for your chronic medicine across Apollo, 1mg, Truemeds and Netmeds. See how much you could save per month." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo-block">
+        <div class="logo-icon">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="32" height="32" rx="8" fill="url(#logoGrad)"/>
+            <path d="M10 16h12M16 10v12" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            <defs>
+              <linearGradient id="logoGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#2563EB"/>
+                <stop offset="1" stop-color="#0EA5E9"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div>
+          <div class="logo-name">Panacea</div>
+          <div class="logo-tagline">The cure for your medicine bill.</div>
+        </div>
+      </div>
+      <div class="header-badge">India 🇮🇳 · Free · No signup</div>
+    </div>
+  </header>
+
+  <!-- Hero Search -->
+  <main class="main">
+    <section class="hero">
+      <h1 class="hero-title">Find the best price for your medicine</h1>
+      <p class="hero-sub">Compare across Apollo, 1mg, Truemeds &amp; Netmeds — in seconds.</p>
+
+      <div class="search-card">
+        <div class="search-row">
+          <div class="search-field-wrap">
+            <label for="medicineInput" class="field-label">Medicine name</label>
+            <div class="input-with-icon">
+              <svg class="input-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input
+                id="medicineInput"
+                type="text"
+                class="search-input"
+                placeholder="e.g. Telma 40, Metformin 500mg…"
+                autocomplete="off"
+              />
+            </div>
+            <!-- Suggestions dropdown -->
+            <div class="suggestions" id="suggestions">
+              <div class="suggestion-label">Try these common medicines:</div>
+              <button class="suggestion-chip" data-query="Telma 40">Telma 40</button>
+              <button class="suggestion-chip" data-query="Metformin 500mg">Metformin 500mg</button>
+              <button class="suggestion-chip" data-query="Amlodipine 5mg">Amlodipine 5mg</button>
+              <button class="suggestion-chip" data-query="Thyronorm 50mcg">Thyronorm 50mcg</button>
+            </div>
+          </div>
+
+          <div class="price-field-wrap">
+            <label for="currentPriceInput" class="field-label">
+              What you currently pay
+              <span class="field-optional">(optional)</span>
+            </label>
+            <div class="price-input-group">
+              <span class="price-prefix">₹</span>
+              <input id="currentPriceInput" type="number" class="price-input" placeholder="e.g. 450" min="0" max="9999" />
+            </div>
+          </div>
+
+          <button id="checkBtn" class="check-btn">
+            <span class="btn-text">Check Price</span>
+            <svg class="btn-arrow" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results area -->
+    <section class="results-section" id="resultsSection" style="display:none">
+
+      <!-- Loading state -->
+      <div id="loadingState" class="loading-state" style="display:none">
+        <div class="loading-header">
+          <div class="loading-spinner"></div>
+          <span class="loading-title">Searching across pharmacies…</span>
+        </div>
+        <div class="source-status-list" id="sourceStatusList">
+          <div class="source-item" id="status-Apollo-Pharmacy">
+            <div class="source-icon searching"></div>
+            <span class="source-name">Apollo Pharmacy</span>
+            <span class="source-state">searching…</span>
+          </div>
+          <div class="source-item" id="status-Tata-1mg">
+            <div class="source-icon searching"></div>
+            <span class="source-name">Tata 1mg</span>
+            <span class="source-state">searching…</span>
+          </div>
+          <div class="source-item" id="status-Truemeds">
+            <div class="source-icon searching"></div>
+            <span class="source-name">Truemeds</span>
+            <span class="source-state">searching…</span>
+          </div>
+          <div class="source-item" id="status-Netmeds">
+            <div class="source-icon searching"></div>
+            <span class="source-name">Netmeds</span>
+            <span class="source-state">searching…</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results content (hidden during loading) -->
+      <div id="resultsContent" style="display:none">
+
+        <!-- Headline savings -->
+        <div class="headline-card" id="headlineCard">
+          <div class="headline-left">
+            <div class="headline-medicine" id="headlineMedicine"></div>
+            <div class="headline-salt" id="headlineSalt"></div>
+            <div class="headline-savings-text" id="headlineSavingsText"></div>
+          </div>
+          <div class="headline-right">
+            <div class="savings-display">
+              <span class="savings-label">You could save</span>
+              <div class="savings-amount" id="savingsAmount">
+                <span class="savings-currency">₹</span>
+                <span class="savings-number" id="savingsNumber">0</span>
+                <span class="savings-period">/month</span>
+              </div>
+              <div class="savings-pct" id="savingsPct"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slider for current price -->
+        <div class="slider-card" id="sliderCard">
+          <div class="slider-label">
+            <span>Adjust what you currently pay: </span>
+            <span class="slider-current-display">₹<span id="sliderCurrentDisplay">0</span></span>
+          </div>
+          <input type="range" id="priceSlider" class="price-slider" min="0" max="2000" step="10" value="0" />
+          <div class="slider-ticks">
+            <span>₹0</span><span>₹500</span><span>₹1000</span><span>₹1500</span><span>₹2000</span>
+          </div>
+        </div>
+
+        <!-- Source status badges -->
+        <div class="source-badges" id="sourceBadges"></div>
+
+        <!-- Filter/sort controls -->
+        <div class="table-controls">
+          <div class="filter-chips">
+            <button class="chip active" data-filter="all" id="chip-all">All</button>
+            <button class="chip" data-filter="branded" id="chip-branded">Branded only</button>
+            <button class="chip" data-filter="generic" id="chip-generic">Generic only</button>
+            <button class="chip" data-filter="instock" id="chip-instock">In stock only</button>
+          </div>
+          <div class="result-count" id="resultCount"></div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrap">
+          <table class="results-table" id="resultsTable">
+            <thead>
+              <tr>
+                <th class="sortable" data-col="name">Product <span class="sort-icon">↕</span></th>
+                <th class="sortable active-sort" data-col="price">Price <span class="sort-icon">↑</span></th>
+                <th class="sortable" data-col="mrp">MRP <span class="sort-icon">↕</span></th>
+                <th class="sortable" data-col="seller">Seller <span class="sort-icon">↕</span></th>
+                <th>Pack Size</th>
+                <th>Stock</th>
+                <th>Type</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+          <div class="no-results" id="noResults" style="display:none">
+            No results match the current filter.
+          </div>
+        </div>
+
+        <!-- Timestamp -->
+        <div class="timestamp" id="timestamp"></div>
+
+      </div>
+    </section>
+
+    <!-- Error state -->
+    <div id="errorState" class="error-state" style="display:none">
+      <div class="error-icon">⚠️</div>
+      <div class="error-msg" id="errorMsg">Something went wrong. Please try again.</div>
+      <button class="retry-btn" id="retryBtn">Retry</button>
+    </div>
+  </main>
+
+  <!-- Footer disclaimer -->
+  <footer class="footer">
+    <p>
+      <strong>Disclaimer:</strong> Price and drug information shown is for reference only.
+      Consult your doctor or pharmacist before switching brands, generics, or dosages.
+      Prices are live but may vary by location and stock availability.
+    </p>
+    <p class="footer-sources">Sources: Apollo Pharmacy · Tata 1mg · Truemeds · Netmeds</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
